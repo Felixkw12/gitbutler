@@ -432,6 +432,8 @@ pub struct Detail {
     /// Where a drag that selects text went past the edge of the diff, brought back inside it,
     /// for the line there to take the selection's end.
     follow: Option<Point<Pixels>>,
+    /// Text selected in the pull request's description or one of its comments.
+    note_selection: Option<pull_request::NoteSelection>,
     /// Files folded by hand.
     folded: HashSet<String>,
     /// Files folding or unfolding now, and the rows each moves, by path.
@@ -772,6 +774,7 @@ impl Detail {
             text_selection: None,
             selecting: false,
             follow: None,
+            note_selection: None,
             folded: HashSet::new(),
             file_folds: Folds::default(),
             fold_rows: HashMap::new(),
@@ -938,6 +941,7 @@ impl Detail {
     fn reset_view(&mut self) {
         self.tabs_kept = false;
         self.text_selection = None;
+        self.note_selection = None;
         self.file_picks.clear();
         self.line_picks = None;
         self.cursor = Cursor::default();
@@ -2121,8 +2125,12 @@ impl Detail {
     }
 
     /// What copying takes from here: the selected text, or the path of the file under the
-    /// cursor. It blinks, as the TUI highlights what it copied.
+    /// cursor, which blinks, as the TUI highlights what it copied. Under a pull request's
+    /// tab, the text selected in its description or comments.
     pub fn copy(&mut self, cx: &mut Context<Self>) -> Option<String> {
+        if self.showing_review(cx) {
+            return self.selected_note_text(cx);
+        }
         let (text, copied) = match self.selected_text() {
             Some(text) => (text, Copied::Text),
             None => (self.shown_cursor_path(cx)?, Copied::Cursor),

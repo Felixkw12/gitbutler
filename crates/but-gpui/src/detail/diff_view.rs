@@ -35,7 +35,7 @@ use crate::ui::illustration::Illustration;
 use crate::ui::scrollbar::{Scroll, scrollbar};
 use crate::ui::{
     Icon, Tooltip, blink_once, checkbox, commit_title, count_badge, dp, empty_state, fixed, h_flex,
-    icon, icon_button, icon_toggle, segmented, shortcut, small_icon, toggle_group, v_flex,
+    icon, icon_button, icon_toggle, segmented, shortcut, small_icon, toggle_group, v_flex, word_at,
 };
 
 /// The diff, drawn by a view of its own over the space [`Detail`] leaves for it. A scrolled
@@ -1971,25 +1971,6 @@ fn line_select(ix: usize, entity: WeakEntity<Detail>, follow: Option<Point<Pixel
         }),
         follow,
     }
-}
-
-/// The word around byte `ix` of `text`, or an empty range when `ix` isn't in one.
-fn word_at(text: &str, ix: usize) -> Range<usize> {
-    let is_word = |c: char| c.is_alphanumeric() || c == '_';
-    let Some((before, after)) = text.split_at_checked(ix) else {
-        return ix..ix;
-    };
-    let start = before
-        .char_indices()
-        .rev()
-        .take_while(|(_, c)| is_word(*c))
-        .last()
-        .map_or(ix, |(at, _)| at);
-    let end = after
-        .char_indices()
-        .find(|(_, c)| !is_word(*c))
-        .map_or(text.len(), |(at, _)| ix + at);
-    start..end
 }
 
 /// The file list's toggle over a diff, or over a checkout's overview where a diff's would be:

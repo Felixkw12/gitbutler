@@ -835,6 +835,7 @@ impl AppView {
             // Then the branch opened on the Branches page, for its table.
             let handled = self.detail.update(cx, |detail, cx| {
                 detail.clear_text_selection(cx)
+                    || detail.clear_note_selection(cx)
                     || detail.clear_line_picks(cx)
                     || detail.clear_file_picks(cx)
                     || detail.close_open_filter(window, cx)

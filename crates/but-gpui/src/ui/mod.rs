@@ -24,8 +24,8 @@ use std::ops::Range;
 use gpui::{
     Action, AnyElement, App, AssetSource, ClickEvent, Context, CursorStyle, Div, DragMoveEvent,
     ElementId, EmptyView, Entity, HighlightStyle, Hsla, MouseButton, MouseDownEvent, Pixels, Point,
-    Rems, Role, SharedString, Stateful, StyledText, Svg, Toggled, UnderlineStyle, Window, div,
-    prelude::*, rems, svg,
+    Rems, Role, SharedString, Stateful, StyledText, Svg, TextLayout, Toggled, UnderlineStyle,
+    Window, div, prelude::*, rems, svg,
 };
 
 use crate::state::{Pane, Store};
@@ -452,6 +452,45 @@ pub fn matched(
         ..Default::default()
     };
     StyledText::new(text).with_highlights(found.into_iter().map(|range| (range, underline)))
+}
+
+/// Where in `text`, laid out as `layout`, the pointer at `position` is: the edge of the
+/// character under it nearer the pointer, as text selection goes everywhere.
+pub fn text_index(layout: &TextLayout, text: &str, position: Point<Pixels>) -> usize {
+    let ix = layout.index_for_position(position).unwrap_or_else(|ix| ix);
+    let next = (text.get(ix..))
+        .and_then(|rest| rest.chars().next())
+        .map(|c| ix + c.len_utf8());
+    let edges = next.and_then(|next| {
+        Some((
+            layout.position_for_index(ix)?,
+            layout.position_for_index(next)?,
+            next,
+        ))
+    });
+    match edges {
+        Some((start, end, next)) if position.x > (start.x + end.x) / 2. => next,
+        _ => ix,
+    }
+}
+
+/// The word around byte `ix` of `text`, or an empty range when `ix` isn't in one.
+pub fn word_at(text: &str, ix: usize) -> Range<usize> {
+    let is_word = |c: char| c.is_alphanumeric() || c == '_';
+    let Some((before, after)) = text.split_at_checked(ix) else {
+        return ix..ix;
+    };
+    let start = before
+        .char_indices()
+        .rev()
+        .take_while(|(_, c)| is_word(*c))
+        .last()
+        .map_or(ix, |(at, _)| at);
+    let end = after
+        .char_indices()
+        .find(|(_, c)| !is_word(*c))
+        .map_or(text.len(), |(at, _)| ix + at);
+    start..end
 }
 
 /// The heading over a group of rows.
