@@ -45,6 +45,8 @@
 	let lmStudioModel: string | undefined = $state();
 	let openRouterKey: string | undefined = $state();
 	let openRouterModel: string | undefined = $state();
+	let opperKey: string | undefined = $state();
+	let opperModel: string | undefined = $state();
 
 	async function setConfiguration(key: GitAIConfigKey, value: string | undefined) {
 		if (!initialized) return;
@@ -78,6 +80,9 @@
 
 		openRouterKey = await aiService.getOpenRouterKey();
 		openRouterModel = await aiService.getOpenRouterModelName();
+
+		opperKey = await aiService.getOpperKey();
+		opperModel = await aiService.getOpperModelName();
 
 		// Ensure reactive declarations have finished running before we set initialized to true
 		await tick();
@@ -178,6 +183,12 @@
 		setConfiguration(GitAIConfigKey.OpenRouterModelName, openRouterModel);
 	});
 	run(() => {
+		setSecret(AISecretHandle.OpperKey, opperKey);
+	});
+	run(() => {
+		setConfiguration(GitAIConfigKey.OpperModelName, opperModel);
+	});
+	run(() => {
 		if (form) form.modelKind.value = modelKind;
 	});
 </script>
@@ -191,7 +202,8 @@
 
 <p class="text-13 text-body ai-settings__about-text">
 	GitButler supports multiple AI providers: OpenAI and Anthropic (via API or your own key),
-	OpenRouter for access to hundreds of models, plus local models through Ollama and LM Studio.
+	OpenRouter or Opper for access to hundreds of models, plus local models through Ollama and LM
+	Studio.
 </p>
 
 <CardGroup>
@@ -422,6 +434,22 @@
 				/>
 
 				<Textbox label="Model" bind:value={openRouterModel} placeholder="openai/gpt-4.1-mini" />
+			</CardGroup.Item>
+		{/if}
+
+		<CardGroup.Item labelFor="opper">
+			{#snippet title()}
+				Opper
+			{/snippet}
+			{#snippet actions()}
+				<RadioButton name="modelKind" id="opper" value={ModelKind.Opper} />
+			{/snippet}
+		</CardGroup.Item>
+		{#if modelKind === ModelKind.Opper}
+			<CardGroup.Item>
+				<Textbox label="API key" type="password" bind:value={opperKey} required />
+
+				<Textbox label="Model" bind:value={opperModel} placeholder="claude-haiku-4-5" />
 			</CardGroup.Item>
 		{/if}
 

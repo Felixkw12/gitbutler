@@ -25,6 +25,7 @@ import {
 	ModelKind,
 	MessageRole,
 	type OpenRouterModelName,
+	type OpperModelName,
 	type Prompt,
 	type PromptMessage,
 	type FileChange,
@@ -49,6 +50,7 @@ export enum AISecretHandle {
 	OpenAIKey = "aiOpenAIKey",
 	AnthropicKey = "aiAnthropicKey",
 	OpenRouterKey = "aiOpenRouterKey",
+	OpperKey = "aiOpperKey",
 }
 
 export enum GitAIConfigKey {
@@ -64,6 +66,7 @@ export enum GitAIConfigKey {
 	LMStudioEndpoint = "gitbutler.aiLMStudioEndpoint",
 	LMStudioModelName = "gitbutler.aiLMStudioModelName",
 	OpenRouterModelName = "gitbutler.aiOpenRouterModelName",
+	OpperModelName = "gitbutler.aiOpperModelName",
 }
 
 interface BaseAIServiceOpts {
@@ -252,6 +255,17 @@ export class AIService {
 		);
 	}
 
+	async getOpperKey() {
+		return await this.secretsService.get(AISecretHandle.OpperKey);
+	}
+
+	async getOpperModelName() {
+		return await this.gitConfig.getWithDefault<OpperModelName>(
+			GitAIConfigKey.OpperModelName,
+			"claude-haiku-4-5",
+		);
+	}
+
 	async usingGitButlerAPI() {
 		const modelKind = await this.getModelKind();
 		const openAIKeyOption = await this.getOpenAIKeyOption();
@@ -284,13 +298,15 @@ export class AIService {
 			modelKind === ModelKind.LMStudio && !!lmStudioEndpoint && !!lmStudioModelName;
 		const openRouterActiveAndKeyProvided =
 			modelKind === ModelKind.OpenRouter && !!(await this.getOpenRouterKey());
+		const opperActiveAndKeyProvided = modelKind === ModelKind.Opper && !!(await this.getOpperKey());
 
 		return (
 			openAIActiveAndKeyProvided ||
 			anthropicActiveAndKeyProvided ||
 			ollamaActiveAndEndpointProvided ||
 			lmStudioActiveAndEndpointProvided ||
-			openRouterActiveAndKeyProvided
+			openRouterActiveAndKeyProvided ||
+			opperActiveAndKeyProvided
 		);
 	}
 
@@ -370,6 +386,17 @@ export class AIService {
 			}
 
 			return new OpenAIClient(openRouterKey, openRouterModelName, "https://openrouter.ai/api/v1");
+		}
+
+		if (modelKind === ModelKind.Opper) {
+			const opperKey = (await this.getOpperKey())?.trim();
+			const opperModelName = await this.getOpperModelName();
+
+			if (!opperKey) {
+				throw new Error("When using Opper, you must provide a valid API key");
+			}
+
+			return new OpenAIClient(opperKey, opperModelName, "https://api.opper.ai/v3/compat");
 		}
 
 		return undefined;

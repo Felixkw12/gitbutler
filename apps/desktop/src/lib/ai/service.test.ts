@@ -42,6 +42,7 @@ const defaultSecretsConfig = Object.freeze({
 	[AISecretHandle.AnthropicKey]: undefined,
 	[AISecretHandle.OpenAIKey]: undefined,
 	[AISecretHandle.OpenRouterKey]: undefined,
+	[AISecretHandle.OpperKey]: undefined,
 });
 
 class DummyGitConfigService extends GitConfigService {
@@ -277,6 +278,38 @@ describe("AIService", () => {
 
 			await expect(aiService.buildClient.bind(aiService)).rejects.toThrowError(
 				new Error("When using OpenRouter, you must provide a valid API key"),
+			);
+		});
+
+		test("When ai provider is Opper, When an API key is present. It returns OpenAIClient", async () => {
+			const gitConfig = new DummyGitConfigService({
+				...defaultGitConfig,
+				[GitAIConfigKey.ModelProvider]: ModelKind.Opper,
+			});
+			const secretsService = new DummySecretsService({
+				[AISecretHandle.OpperKey]: "opper-test-key",
+			});
+			const tokenMemoryService = new TokenMemoryService();
+			const fetchMock = vi.fn();
+			const cloud = new HttpClient(fetchMock, "https://www.example.com", tokenMemoryService.token);
+			const aiService = new AIService(gitConfig, secretsService, cloud, tokenMemoryService);
+
+			expect(await aiService.buildClient()).toBeInstanceOf(OpenAIClient);
+		});
+
+		test("When ai provider is Opper, When an API key is blank. It throws an error", async () => {
+			const gitConfig = new DummyGitConfigService({
+				...defaultGitConfig,
+				[GitAIConfigKey.ModelProvider]: ModelKind.Opper,
+			});
+			const secretsService = new DummySecretsService();
+			const tokenMemoryService = new TokenMemoryService();
+			const fetchMock = vi.fn();
+			const cloud = new HttpClient(fetchMock, "https://www.example.com", tokenMemoryService.token);
+			const aiService = new AIService(gitConfig, secretsService, cloud, tokenMemoryService);
+
+			await expect(aiService.buildClient.bind(aiService)).rejects.toThrowError(
+				new Error("When using Opper, you must provide a valid API key"),
 			);
 		});
 	});

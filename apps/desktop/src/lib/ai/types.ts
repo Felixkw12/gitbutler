@@ -7,10 +7,14 @@ export enum ModelKind {
 	Ollama = "ollama",
 	LMStudio = "lmstudio",
 	OpenRouter = "openrouter",
+	Opper = "opper",
 }
 
 // OpenRouter model names follow the `provider/model` format (e.g. `openai/gpt-4.1-mini`)
 export type OpenRouterModelName = `${string}/${string}`;
+
+// Opper model names are pooled names (e.g. `claude-haiku-4-5`) or `provider/model` to pin a route
+export type OpperModelName = string;
 
 // https://platform.openai.com/docs/models
 export enum OpenAIModelName {

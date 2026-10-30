@@ -15,10 +15,13 @@ pub const AI_LMSTUDIO_ENDPOINT_KEY: &str = "gitbutler.aiLMStudioEndpoint";
 pub const AI_LMSTUDIO_MODEL_NAME_KEY: &str = "gitbutler.aiLMStudioModelName";
 pub const AI_OPENROUTER_MODEL_NAME_KEY: &str = "gitbutler.aiOpenRouterModelName";
 pub const AI_OPENROUTER_ENDPOINT_KEY: &str = "gitbutler.aiOpenRouterEndpoint";
+pub const AI_OPPER_MODEL_NAME_KEY: &str = "gitbutler.aiOpperModelName";
+pub const AI_OPPER_ENDPOINT_KEY: &str = "gitbutler.aiOpperEndpoint";
 
 pub const AI_OPENAI_SECRET_HANDLE: &str = "aiOpenAIKey";
 pub const AI_ANTHROPIC_SECRET_HANDLE: &str = "aiAnthropicKey";
 pub const AI_OPENROUTER_SECRET_HANDLE: &str = "aiOpenRouterKey";
+pub const AI_OPPER_SECRET_HANDLE: &str = "aiOpperKey";
 pub const GITBUTLER_ACCESS_TOKEN_HANDLE: &str = "gitbutler_access_token";
 
 pub const DEFAULT_OPENAI_MODEL: &str = "gpt-5.4-nano";
@@ -28,6 +31,7 @@ pub const DEFAULT_OLLAMA_MODEL: &str = "llama3";
 pub const DEFAULT_LMSTUDIO_ENDPOINT: &str = "http://127.0.0.1:1234/v1";
 pub const DEFAULT_LMSTUDIO_MODEL: &str = "default";
 pub const DEFAULT_OPENROUTER_MODEL: &str = "openai/gpt-4.1-mini";
+pub const DEFAULT_OPPER_MODEL: &str = "claude-haiku-4-5";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OpenAiConfiguration {
@@ -173,7 +177,7 @@ impl AiConfiguration {
                 required(&self.lmstudio.model, "LM Studio model")?;
                 validate_url(&self.lmstudio.endpoint, "LM Studio endpoint")?;
             }
-            LLMProviderKind::OpenRouter => {}
+            LLMProviderKind::OpenRouter | LLMProviderKind::Opper => {}
         }
         Ok(())
     }
@@ -198,7 +202,7 @@ impl AiConfiguration {
                 CredentialsKeyOption::ButlerApi => has_gitbutler_token,
             },
             LLMProviderKind::Ollama | LLMProviderKind::LMStudio => true,
-            LLMProviderKind::OpenRouter => false,
+            LLMProviderKind::OpenRouter | LLMProviderKind::Opper => false,
         }
     }
 
@@ -347,6 +351,15 @@ pub fn apply_openrouter_configuration(
     validate_optional(model, "OpenRouter model")?;
     set_provider(config, LLMProviderKind::OpenRouter)?;
     set_optional(config, AI_OPENROUTER_MODEL_NAME_KEY, model)
+}
+
+pub fn apply_opper_configuration(
+    config: &mut gix::config::File,
+    model: Option<&str>,
+) -> Result<()> {
+    validate_optional(model, "Opper model")?;
+    set_provider(config, LLMProviderKind::Opper)?;
+    set_optional(config, AI_OPPER_MODEL_NAME_KEY, model)
 }
 
 fn set_provider(config: &mut gix::config::File, provider: LLMProviderKind) -> Result<()> {

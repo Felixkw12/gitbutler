@@ -8,6 +8,7 @@ mod ollama;
 mod openai;
 mod openai_utils;
 mod openrouter;
+mod opper;
 
 use std::sync::Arc;
 
@@ -27,6 +28,7 @@ pub enum LLMProviderKind {
     Ollama,
     LMStudio,
     OpenRouter,
+    Opper,
 }
 
 impl LLMProviderKind {
@@ -37,6 +39,7 @@ impl LLMProviderKind {
             "ollama" => Some(LLMProviderKind::Ollama),
             "lmstudio" => Some(LLMProviderKind::LMStudio),
             "openrouter" => Some(LLMProviderKind::OpenRouter),
+            "opper" => Some(LLMProviderKind::Opper),
             _ => None,
         }
     }
@@ -48,6 +51,7 @@ impl LLMProviderKind {
             LLMProviderKind::Ollama => "ollama",
             LLMProviderKind::LMStudio => "lmstudio",
             LLMProviderKind::OpenRouter => "openrouter",
+            LLMProviderKind::Opper => "opper",
         }
     }
 
@@ -58,6 +62,7 @@ impl LLMProviderKind {
             LLMProviderKind::Ollama => "Ollama",
             LLMProviderKind::LMStudio => "LM Studio",
             LLMProviderKind::OpenRouter => "OpenRouter",
+            LLMProviderKind::Opper => "Opper",
         }
     }
 }
@@ -75,6 +80,7 @@ pub enum LLMProviderConfig {
     Ollama(Option<ollama::OllamaConfig>),
     LMStudio(Option<lmstudio::LMStudioConfig>),
     OpenRouter(Option<openrouter::OpenRouterConfig>),
+    Opper(Option<opper::OpperConfig>),
 }
 
 #[derive(Debug, Clone)]
@@ -84,6 +90,7 @@ pub enum LLMClientType {
     Ollama(Arc<ollama::OllamaProvider>),
     LMStudio(Arc<lmstudio::LMStudioProvider>),
     OpenRouter(Arc<openrouter::OpenRouterProvider>),
+    Opper(Arc<opper::OpperProvider>),
 }
 
 #[derive(Debug, Clone)]
@@ -131,6 +138,8 @@ impl LLMProvider {
                 openrouter::OpenRouterProvider::with(config, None)
                     .map(|p| LLMClientType::OpenRouter(Arc::new(p)))?
             }
+            LLMProviderConfig::Opper(config) => opper::OpperProvider::with(config, None)
+                .map(|p| LLMClientType::Opper(Arc::new(p)))?,
         };
         Some(Self { client })
     }
@@ -229,6 +238,20 @@ impl LLMProvider {
                     client: LLMClientType::OpenRouter(Arc::new(client)),
                 })
             }
+            LLMProviderKind::Opper => {
+                let provider_config = config.string(AI_OPPER_ENDPOINT_KEY).map(|api_base| {
+                    opper::OpperConfig {
+                        api_base: api_base.to_string(),
+                    }
+                });
+                let model = config
+                    .string(AI_OPPER_MODEL_NAME_KEY)
+                    .map(|model| model.to_string());
+                let client = opper::OpperProvider::with(provider_config, model)?;
+                Some(Self {
+                    client: LLMClientType::Opper(Arc::new(client)),
+                })
+            }
         }
     }
 
@@ -253,6 +276,7 @@ impl LLMProvider {
             LLMClientType::Ollama(client) => client.model(),
             LLMClientType::LMStudio(client) => client.model(),
             LLMClientType::OpenRouter(client) => client.model(),
+            LLMClientType::Opper(client) => client.model(),
         }
     }
 
@@ -272,6 +296,7 @@ impl LLMProvider {
             LLMClientType::Ollama(_) => DEFAULT_OLLAMA_MODEL,
             LLMClientType::LMStudio(_) => DEFAULT_LMSTUDIO_MODEL,
             LLMClientType::OpenRouter(_) => DEFAULT_OPENROUTER_MODEL,
+            LLMClientType::Opper(_) => DEFAULT_OPPER_MODEL,
         }
         .to_string()
     }
@@ -396,6 +421,13 @@ impl LLMProvider {
                 model,
                 on_token,
             ),
+            LLMClientType::Opper(client) => client.tool_calling_loop_stream(
+                system_message,
+                chat_messages,
+                tool_set,
+                model,
+                on_token,
+            ),
         }
     }
 
@@ -446,6 +478,9 @@ impl LLMProvider {
             LLMClientType::OpenRouter(client) => {
                 client.tool_calling_loop(system_message, chat_messages, tool_set, model)
             }
+            LLMClientType::Opper(client) => {
+                client.tool_calling_loop(system_message, chat_messages, tool_set, model)
+            }
         }
     }
 
@@ -488,6 +523,9 @@ impl LLMProvider {
                 client.stream_response(system_message, chat_messages, model, on_token)
             }
             LLMClientType::OpenRouter(client) => {
+                client.stream_response(system_message, chat_messages, model, on_token)
+            }
+            LLMClientType::Opper(client) => {
                 client.stream_response(system_message, chat_messages, model, on_token)
             }
         }
@@ -542,6 +580,9 @@ impl LLMProvider {
             LLMClientType::OpenRouter(client) => {
                 client.structured_output::<T>(system_message, chat_messages, model)
             }
+            LLMClientType::Opper(client) => {
+                client.structured_output::<T>(system_message, chat_messages, model)
+            }
         }
     }
 
@@ -580,6 +621,7 @@ impl LLMProvider {
             LLMClientType::OpenRouter(client) => {
                 client.response(system_message, chat_messages, model)
             }
+            LLMClientType::Opper(client) => client.response(system_message, chat_messages, model),
         }
     }
 }

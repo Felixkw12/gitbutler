@@ -16,9 +16,9 @@ use but_core::{
 use but_ctx::Context;
 use but_llm::{
     AI_ANTHROPIC_SECRET_HANDLE, AI_OPENAI_SECRET_HANDLE, AI_OPENROUTER_SECRET_HANDLE,
-    AiConfigurationSnapshot, LLMProviderKind, apply_anthropic_configuration,
-    apply_lmstudio_configuration, apply_ollama_configuration, apply_openai_configuration,
-    apply_openrouter_configuration,
+    AI_OPPER_SECRET_HANDLE, AiConfigurationSnapshot, LLMProviderKind,
+    apply_anthropic_configuration, apply_lmstudio_configuration, apply_ollama_configuration,
+    apply_openai_configuration, apply_openrouter_configuration, apply_opper_configuration,
 };
 use but_secret::{Sensitive, secret};
 use but_settings::{
@@ -1523,6 +1523,15 @@ fn ai_config_non_interactive(
             apply_openrouter_config(repo, scope, model, secret)?;
             write_ai_config_success(out, scope, LLMProviderKind::OpenRouter)?;
         }
+        AiSubcommand::Opper {
+            model,
+            api_key,
+            api_key_env,
+        } => {
+            let secret = resolve_secret_input(api_key, api_key_env)?;
+            apply_opper_config(repo, scope, model, secret)?;
+            write_ai_config_success(out, scope, LLMProviderKind::Opper)?;
+        }
     }
 
     Ok(())
@@ -1544,7 +1553,8 @@ fn ai_config_interactive(
         ("Anthropic", LLMProviderKind::Anthropic),
         ("Ollama", LLMProviderKind::Ollama),
         ("LM Studio", LLMProviderKind::LMStudio),
-        ("OpenRouter", LLMProviderKind::OpenRouter)
+        ("OpenRouter", LLMProviderKind::OpenRouter),
+        ("Opper", LLMProviderKind::Opper)
     ];
     let provider = inout
         .prompt_select("Select an AI provider", &providers)?
@@ -1620,6 +1630,15 @@ fn ai_config_interactive(
                     .context("No API key provided. Aborting configuration.")?,
             );
             apply_openrouter_config(repo, scope, model, secret)?;
+        }
+        LLMProviderKind::Opper => {
+            let model = inout.prompt("Preferred Opper model (e.g. claude-haiku-4-5):")?;
+            let secret = Some(
+                inout
+                    .prompt_secret("Enter Opper API key:")?
+                    .context("No API key provided. Aborting configuration.")?,
+            );
+            apply_opper_config(repo, scope, model, secret)?;
         }
     }
 
@@ -1788,6 +1807,21 @@ fn apply_openrouter_config(
     })?;
     if let Some(key) = secret {
         secret::persist(AI_OPENROUTER_SECRET_HANDLE, &key, secret::Namespace::Global)?;
+    }
+    Ok(())
+}
+
+fn apply_opper_config(
+    repo: Option<&gix::Repository>,
+    scope: AiScope,
+    model: Option<String>,
+    secret: Option<Sensitive<String>>,
+) -> Result<()> {
+    edit_ai_git_config(repo, scope, |config| {
+        apply_opper_configuration(config, model.as_deref())
+    })?;
+    if let Some(key) = secret {
+        secret::persist(AI_OPPER_SECRET_HANDLE, &key, secret::Namespace::Global)?;
     }
     Ok(())
 }

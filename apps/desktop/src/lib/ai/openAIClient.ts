@@ -7,6 +7,7 @@ import OpenAI from "openai";
 import type {
 	OpenAIModelName,
 	OpenRouterModelName,
+	OpperModelName,
 	Prompt,
 	AIClient,
 	AIEvalOptions,
@@ -21,11 +22,11 @@ export class OpenAIClient implements AIClient {
 
 	private client: OpenAI;
 	private openAIKey: string;
-	private modelName: OpenAIModelName | OpenRouterModelName;
+	private modelName: OpenAIModelName | OpenRouterModelName | OpperModelName;
 
 	constructor(
 		openAIKey: string,
-		modelName: OpenAIModelName | OpenRouterModelName,
+		modelName: OpenAIModelName | OpenRouterModelName | OpperModelName,
 		baseURL: string | undefined,
 	) {
 		this.openAIKey = openAIKey;

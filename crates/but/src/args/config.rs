@@ -313,6 +313,19 @@ pub enum AiSubcommand {
         #[clap(long)]
         api_key_env: Option<String>,
     },
+
+    /// Configure Opper as the active AI provider.
+    Opper {
+        /// Preferred model name (for example, claude-haiku-4-5).
+        #[clap(long)]
+        model: Option<String>,
+        /// Opper API key. Prefer --api-key-env to avoid shell history exposure.
+        #[clap(long, hide_env_values = true)]
+        api_key: Option<String>,
+        /// Name of an environment variable holding the Opper API key.
+        #[clap(long)]
+        api_key_env: Option<String>,
+    },
 }
 
 /// Credential source options for OpenAI/Anthropic.

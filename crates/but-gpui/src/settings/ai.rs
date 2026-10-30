@@ -271,11 +271,12 @@ impl SettingsView {
             field_with_save(input, changed, Self::save_ai_field, window, cx)
         };
         // A provider chosen in GitButler's other apps that these settings can't change, like
-        // OpenRouter: only picking another one here can be saved.
+        // OpenRouter or Opper: only picking another one here can be saved.
         let known = PROVIDERS.iter().find(|(id, _)| *id == config.provider);
         let provider_name = match (known, config.provider.as_str()) {
             (Some((_, name)), _) => *name,
             (None, "openrouter") => "OpenRouter",
+            (None, "opper") => "Opper",
             (None, other) => other,
         };
         let (model, endpoint, key) = provider_parts(config);
